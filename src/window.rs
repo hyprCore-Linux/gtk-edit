@@ -1434,8 +1434,6 @@ fn install_actions(ew: &Rc<EditorWindow>) {
                 "gtk-edit standalone text editor application, in Rust that edits plain text with GtkSourceView.",
             )
             .authors(["Created by Kevin Hinds"])
-            .website("https://github.com/NeuronixOS/GTK-Apps")
-            .website_label("github.com/NeuronixOS/GTK-Apps")
             .license_type(gtk::License::Gpl20)
             .build();
         dialog.present();
