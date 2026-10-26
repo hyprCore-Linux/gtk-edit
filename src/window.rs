@@ -1434,7 +1434,7 @@ fn install_actions(ew: &Rc<EditorWindow>) {
                 "gtk-edit standalone text editor application, in Rust that edits plain text with GtkSourceView.",
             )
             .authors(["Created by Kevin Hinds"])
-            .license_type(gtk::License::Gpl20)
+            .license_type(gtk::License::Gpl30)
             .build();
         dialog.present();
     });

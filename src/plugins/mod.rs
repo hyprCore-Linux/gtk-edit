@@ -48,7 +48,7 @@ fn info(
         name: name.into(),
         description: description.into(),
         authors: "gtk-edit".into(),
-        copyright: "GPL-2.0-or-later".into(),
+        copyright: "GPL-3.0".into(),
         website: String::new(),
         builtin: true,
     }

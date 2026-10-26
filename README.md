@@ -134,3 +134,7 @@ Feature checklist and behavior are taken from `GTK4-Apps/Source-Apps/gedit`
 
 Skipped (not Linux product features in that tree): Windows/macOS tooling,
 `checkupdate`, Zeitgeist, Tag list (not shipped upstream here).
+
+## License
+
+GNU General Public License v3.0. See [LICENSE](LICENSE).

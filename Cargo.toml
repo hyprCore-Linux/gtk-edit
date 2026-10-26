@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Kevin Hinds"]
 description = "A GTK4 + GtkSourceView 5 text editor written in Rust (gedit feature port)"
-license = "GPL-2.0-or-later"
+license = "GPL-3.0"
 readme = "README.md"
 
 [[bin]]

@@ -3,5 +3,5 @@ Module=sample
 Name=Sample External Plugin
 Description=Placeholder metadata for an external cdylib plugin.
 Authors=gtk-edit
-Copyright=GPL-2.0-or-later
+Copyright=GPL-3.0
 Library=libsample.so

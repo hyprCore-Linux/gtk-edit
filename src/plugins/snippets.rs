@@ -52,7 +52,7 @@ impl WindowActivatable for SnippetsPlugin {
 
 fn default_snippets() -> HashMap<String, String> {
     let mut m = HashMap::new();
-    m.insert("gpl".into(), "/*\n * Copyright (C) YEAR AUTHOR\n * SPDX-License-Identifier: GPL-2.0-or-later\n */\n".into());
+    m.insert("gpl".into(), "/*\n * Copyright (C) YEAR AUTHOR\n * SPDX-License-Identifier: GPL-3.0\n */\n".into());
     m.insert(
         "html".into(),
         "<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"utf-8\">\n  <title></title>\n</head>\n<body>\n  \n</body>\n</html>\n".into(),
