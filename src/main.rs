@@ -34,7 +34,7 @@ use config::Config;
 use plugin::PluginEngine;
 use window::{open_files, start_autosave, EditorWindow};
 
-const APP_ID: &str = "org.neuronix.GtkEdit";
+const APP_ID: &str = "org.hyprcore.GtkEdit";
 
 fn prefer_color_emoji_renderer() {
     // Hyprland on hyprCore Linux pins GSK_RENDERER=cairo, which cannot paint COLRv1
