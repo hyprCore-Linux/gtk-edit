@@ -191,13 +191,7 @@ pub fn file_vanished(doc: &Document) -> bool {
 }
 
 pub fn show_io_error(parent: &impl IsA<gtk::Window>, title: &str, message: &str) {
-    let dialog = gtk::AlertDialog::builder()
-        .modal(true)
-        .message(title)
-        .detail(message)
-        .buttons(["OK"])
-        .build();
-    dialog.show(Some(parent));
+    gtk_theme::present_message(Some(parent), title, message);
 }
 
 #[allow(dead_code)]

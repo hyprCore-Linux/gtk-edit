@@ -207,26 +207,16 @@ fn present_spell_results(
         }
     }
 
-    let dialog = gtk::AlertDialog::builder()
-        .modal(true)
-        .message("Spell Check")
-        .detail(&detail)
-        .buttons(["Close"])
-        .build();
-    dialog.show(Some(win));
+    gtk_theme::present_message(Some(win), "Spell Check", &detail);
 }
 
 fn choose_language(win: &gtk::ApplicationWindow) {
-    let dialog = gtk::AlertDialog::builder()
-        .modal(true)
-        .message("Spell Language")
-        .detail(
-            "Default dictionary language is English (en). Install aspell/enchant \
-             dictionaries for more languages.",
-        )
-        .buttons(["OK"])
-        .build();
-    dialog.show(Some(win));
+    gtk_theme::present_message(
+        Some(win),
+        "Spell Language",
+        "Default dictionary language is English (en). Install aspell/enchant \
+         dictionaries for more languages.",
+    );
 }
 
 pub fn factory() -> (PluginInfo, crate::plugin::activatable::PluginFactory) {

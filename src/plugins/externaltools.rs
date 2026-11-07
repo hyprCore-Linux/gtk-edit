@@ -131,13 +131,7 @@ fn run_tool(win: &gtk::ApplicationWindow, tool: Tool) {
                     ),
                     Err(e) => e.to_string(),
                 };
-                let alert = gtk::AlertDialog::builder()
-                    .modal(true)
-                    .message("Command Output")
-                    .detail(&detail)
-                    .buttons(["Close"])
-                    .build();
-                alert.show(Some(&win2));
+                gtk_theme::present_message(Some(&win2), "Command Output", &detail);
                 d.close();
             });
             dialog.present();
@@ -168,13 +162,7 @@ fn run_tool(win: &gtk::ApplicationWindow, tool: Tool) {
                 ),
                 Err(e) => e.to_string(),
             };
-            let alert = gtk::AlertDialog::builder()
-                .modal(true)
-                .message("Build")
-                .detail(&detail)
-                .buttons(["Close"])
-                .build();
-            alert.show(Some(win));
+            gtk_theme::present_message(Some(win), "Build", &detail);
         }
         Tool::OpenTerminal => {
             let cwd = tab

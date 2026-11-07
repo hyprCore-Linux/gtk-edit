@@ -51,13 +51,7 @@ fn show_docinfo(win: &gtk::ApplicationWindow) {
     let detail = format!(
         "Lines: {lines}\nWords: {words}\nCharacters: {chars}\nBytes: {bytes}"
     );
-    let dialog = gtk::AlertDialog::builder()
-        .modal(true)
-        .message("Document Statistics")
-        .detail(&detail)
-        .buttons(["Close"])
-        .build();
-    dialog.show(Some(win));
+    gtk_theme::present_message(Some(win), "Document Statistics", &detail);
 }
 
 pub fn factory() -> (PluginInfo, crate::plugin::activatable::PluginFactory) {

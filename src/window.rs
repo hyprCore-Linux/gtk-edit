@@ -51,6 +51,8 @@ pub struct EditorWindow {
     /// Direct file-browser cwd hook: follows the focused document's folder.
     /// Registered by the file browser plugin on activate.
     pub filebrowser_sync: RefCell<Option<Rc<dyn Fn(&Path)>>>,
+    /// Left title + hamburger-reveal menubar (suite chrome).
+    pub reveal_menubar: gtk_theme::RevealMenubar,
 }
 
 impl EditorWindow {
@@ -82,20 +84,19 @@ impl EditorWindow {
         let edit_menu_extra = gio::Menu::new();
         let search_menu_extra = gio::Menu::new();
 
-        let (menubar, menu_icons) =
+        let (menubar_model, menu_icons) =
             build_menubar(&tools_menu, &edit_menu_extra, &search_menu_extra);
         let menu_icons = Rc::new(RefCell::new(menu_icons));
-        let popover = gtk::PopoverMenu::from_model(Some(&menubar));
-        let menu_btn = gtk::MenuButton::builder()
-            .icon_name("open-menu-symbolic")
-            .popover(&popover)
-            .tooltip_text("Menu")
-            .build();
 
         let header = gtk::HeaderBar::new();
-        gtk_theme::prepare_headerbar(&header);
-        header.pack_end(&menu_btn);
-        header.set_title_widget(Some(&gtk::Label::new(Some("GTK Edit"))));
+        let reveal = gtk_theme::install_reveal_menubar(
+            &header,
+            &window,
+            "GTK Edit",
+            &menubar_model,
+            Some(&menu_icons.borrow()),
+        );
+        reveal.pack_controls(&header);
         window.set_titlebar(Some(&header));
 
         let search = SearchBar::new();
@@ -166,6 +167,7 @@ impl EditorWindow {
             search_menu_extra,
             terminal_sync: RefCell::new(None),
             filebrowser_sync: RefCell::new(None),
+            reveal_menubar: reveal,
         });
 
         unsafe {
@@ -201,7 +203,7 @@ impl EditorWindow {
         // Bind icon rows after plugins have appended their menu items.
         {
             let icons = menu_icons.borrow();
-            icons.bind_popover(&popover);
+            icons.bind_menubar(this.reveal_menubar.menubar());
         }
 
         // Restore last side-panel tab (Documents / File Browser) after plugins
@@ -397,8 +399,10 @@ impl EditorWindow {
         let _ = self.config.borrow().save();
         self.refresh_documents_panel();
         self.update_statusbar();
+        let doc = tab.document.title();
         self.window
-            .set_title(Some(&format!("{} — GTK Edit", tab.document.title())));
+            .set_title(Some(&format!("{doc} — GTK Edit")));
+        self.reveal_menubar.set_content_title(&doc);
         // Same as gtk-files: sync terminal to this file's folder immediately.
         self.sync_terminal_for_tab(&tab);
     }
@@ -552,35 +556,30 @@ impl EditorWindow {
     /// File (or its folder) is gone and the buffer is dirty: don't block Close on ENOENT.
     fn prompt_missing_file_close(&self, tab: &Rc<EditorTab>) {
         let name = tab.document.title();
-        let dialog = gtk::AlertDialog::builder()
-            .modal(true)
-            .message(format!("“{name}” is no longer on disk"))
-            .detail(
-                "The file or its folder was moved or deleted. Save to a new location, or close without saving.",
-            )
-            .buttons(["Close without Saving", "Cancel", "Save As…"])
-            .cancel_button(1)
-            .default_button(2)
-            .build();
         let win = self.window.clone();
         let tab = Rc::clone(tab);
-        dialog.choose(Some(&win.clone()), None::<&gio::Cancellable>, move |res| {
-            let Ok(choice) = res else {
-                return;
-            };
-            let Some(this) = current_from_window(&win) else {
-                return;
-            };
-            match choice {
-                0 => {
-                    let _ = this.remove_tab(&tab);
+        gtk_theme::present_buttons(
+            Some(&self.window),
+            &format!("“{name}” is no longer on disk"),
+            "The file or its folder was moved or deleted. Save to a new location, or close without saving.",
+            &["Close without Saving", "Cancel", "Save As…"],
+            2,
+            Some(1),
+            move |choice| {
+                let Some(this) = current_from_window(&win) else {
+                    return;
+                };
+                match choice {
+                    0 => {
+                        let _ = this.remove_tab(&tab);
+                    }
+                    2 => {
+                        this.save_tab(&tab, true);
+                    }
+                    _ => {}
                 }
-                2 => {
-                    this.save_tab(&tab, true);
-                }
-                _ => {}
-            }
-        });
+            },
+        );
     }
 
     pub fn close_all_tabs(&self) -> bool {
@@ -727,8 +726,10 @@ impl EditorWindow {
             .unwrap_or_else(|| "Plain Text".into());
         self.statusbar.set_language_label(&lang_name);
         self.statusbar.set_tab_width(tab.view.tab_width());
+        let doc = tab.document.title();
         self.window
-            .set_title(Some(&format!("{} — GTK Edit", tab.document.title())));
+            .set_title(Some(&format!("{doc} — GTK Edit")));
+        self.reveal_menubar.set_content_title(&doc);
 
         if io::file_vanished(&tab.document) {
             self.statusbar.flash("File no longer exists on disk");
@@ -756,34 +757,31 @@ impl EditorWindow {
             .file_name()
             .map(|n| n.to_string_lossy().to_string())
             .unwrap_or_else(|| path.display().to_string());
-        let dialog = gtk::AlertDialog::builder()
-            .modal(true)
-            .message(format!("“{name}” is no longer on disk"))
-            .detail("The file or its folder was moved or deleted. You can keep editing, save to a new location, or close the tab.")
-            .buttons(["Keep Editing", "Save As…", "Close Tab"])
-            .cancel_button(0)
-            .default_button(0)
-            .build();
         let win = self.window.clone();
         let tab = Rc::clone(tab);
-        dialog.choose(Some(&win.clone()), None::<&gio::Cancellable>, move |res| {
-            tab.document.disk_change_prompt_open.set(false);
-            let Ok(choice) = res else {
-                return;
-            };
-            let Some(this) = current_from_window(&win) else {
-                return;
-            };
-            match choice {
-                1 => {
-                    this.save_tab(&tab, true);
+        gtk_theme::present_buttons(
+            Some(&self.window),
+            &format!("“{name}” is no longer on disk"),
+            "The file or its folder was moved or deleted. You can keep editing, save to a new location, or close the tab.",
+            &["Keep Editing", "Save As…", "Close Tab"],
+            0,
+            Some(0),
+            move |choice| {
+                tab.document.disk_change_prompt_open.set(false);
+                let Some(this) = current_from_window(&win) else {
+                    return;
+                };
+                match choice {
+                    1 => {
+                        this.save_tab(&tab, true);
+                    }
+                    2 => {
+                        let _ = this.remove_tab(&tab);
+                    }
+                    _ => {}
                 }
-                2 => {
-                    let _ = this.remove_tab(&tab);
-                }
-                _ => {}
-            }
-        });
+            },
+        );
     }
 
     /// Prompt Reload / Ignore when the on-disk file is newer than the buffer.
@@ -813,45 +811,41 @@ impl EditorWindow {
             "The file was modified by another program."
         };
 
-        let dialog = gtk::AlertDialog::builder()
-            .modal(true)
-            .message(format!("“{name}” changed on disk"))
-            .detail(detail)
-            .buttons(["Ignore", "Reload"])
-            .cancel_button(0)
-            .default_button(1)
-            .build();
-
         let win = self.window.clone();
         let tab = Rc::clone(tab);
-        dialog.choose(Some(&win.clone()), None::<&gio::Cancellable>, move |res| {
-            tab.document.disk_change_prompt_open.set(false);
-            let Ok(choice) = res else {
-                return;
-            };
-            if choice == 1 {
-                // Reload
-                let Some(this) = current_from_window(&win) else {
-                    return;
-                };
-                let cfg = this.config.borrow().clone();
-                if let Some(path) = tab.document.path() {
-                    if let Err(e) = load_path(
-                        &tab.document,
-                        &path,
-                        &cfg.editor,
-                        &cfg.encodings.auto_detected,
-                    ) {
-                        show_io_error(&this.window, "Reload failed", &e);
+        gtk_theme::present_buttons(
+            Some(&self.window),
+            &format!("“{name}” changed on disk"),
+            detail,
+            &["Ignore", "Reload"],
+            1,
+            Some(0),
+            move |choice| {
+                tab.document.disk_change_prompt_open.set(false);
+                if choice == 1 {
+                    // Reload
+                    let Some(this) = current_from_window(&win) else {
+                        return;
+                    };
+                    let cfg = this.config.borrow().clone();
+                    if let Some(path) = tab.document.path() {
+                        if let Err(e) = load_path(
+                            &tab.document,
+                            &path,
+                            &cfg.editor,
+                            &cfg.encodings.auto_detected,
+                        ) {
+                            show_io_error(&this.window, "Reload failed", &e);
+                        }
+                        tab.refresh_title();
+                        this.update_statusbar();
                     }
-                    tab.refresh_title();
-                    this.update_statusbar();
+                } else {
+                    // Ignore this disk revision until it changes again.
+                    *tab.document.ignored_disk_mtime.borrow_mut() = Some(on_disk);
                 }
-            } else {
-                // Ignore this disk revision until it changes again.
-                *tab.document.ignored_disk_mtime.borrow_mut() = Some(on_disk);
-            }
-        });
+            },
+        );
     }
 
     pub fn apply_config(&self) {
@@ -1078,7 +1072,9 @@ fn build_menubar(
         "x-office-document-symbolic",
     );
 
-    icons.append_action(&menubar, "About", "win.about");
+    let help = gio::Menu::new();
+    icons.append_action(&help, "About", "win.about");
+    icons.append_submenu(&menubar, "_Help", &help, "help-about-symbolic");
 
     (menubar, icons)
 }

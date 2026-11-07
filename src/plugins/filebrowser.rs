@@ -865,31 +865,11 @@ fn confirm_dialog(
     confirm_label: &str,
     cb: impl FnOnce(bool) + 'static,
 ) {
-    let dialog = gtk::AlertDialog::builder()
-        .modal(true)
-        .message(title)
-        .detail(detail)
-        .buttons(["Cancel", confirm_label])
-        .default_button(1)
-        .cancel_button(0)
-        .build();
-    dialog.choose(
-        parent.map(|w| w.upcast_ref()),
-        None::<&gio::Cancellable>,
-        move |res| {
-            cb(matches!(res, Ok(1)));
-        },
-    );
+    gtk_theme::present_confirm(parent, title, detail, confirm_label, cb);
 }
 
 fn show_error(parent: &impl IsA<gtk::Window>, title: &str, detail: &str) {
-    let dialog = gtk::AlertDialog::builder()
-        .modal(true)
-        .message(title)
-        .detail(detail)
-        .buttons(["OK"])
-        .build();
-    dialog.show(Some(parent.upcast_ref()));
+    gtk_theme::present_message(Some(parent), title, detail);
 }
 
 fn find_side_notebook(side: &gtk::Box) -> Option<gtk::Notebook> {
