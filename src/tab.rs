@@ -285,6 +285,8 @@ pub struct TabNotebook {
 impl TabNotebook {
     pub fn new() -> Rc<Self> {
         let notebook = gtk::Notebook::new();
+        // GTK4 adds `.frame` by default → 1px Adwaita outline; drop it.
+        notebook.remove_css_class("frame");
         // tab-expand shares leftover bar space; scrollable keeps overflow on-screen.
         notebook.set_scrollable(true);
         notebook.set_vexpand(true);

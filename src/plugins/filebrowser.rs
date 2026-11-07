@@ -363,28 +363,59 @@ fn wire_row(
     let win = win.clone().upcast::<gtk::Window>();
     let list = list.clone();
     let row_weak = row.downgrade();
-    let gesture = gtk::GestureClick::new();
-    gesture.set_button(gdk::BUTTON_SECONDARY);
-    gesture.connect_pressed(move |g, _, x, y| {
-        let Some(row) = row_weak.upgrade() else {
-            return;
-        };
-        list.select_row(Some(&row));
-        let dest = dir_cell.borrow().clone();
-        let alloc = row.allocation();
-        present_context_menu(
-            &list,
-            gdk::Rectangle::new(alloc.x() + x as i32, alloc.y() + y as i32, 1, 1),
-            Some(path.clone()),
-            dest,
-            Rc::clone(&clip),
-            Rc::clone(&refresh),
-            win.clone(),
-            Some(Rc::clone(&dir_cell)),
-        );
-        g.set_state(gtk::EventSequenceState::Claimed);
-    });
-    row.add_controller(gesture);
+    {
+        let path = path.clone();
+        let dir_cell = Rc::clone(&dir_cell);
+        let clip = Rc::clone(&clip);
+        let refresh = Rc::clone(&refresh);
+        let win = win.clone();
+        let list = list.clone();
+        let gesture = gtk::GestureClick::new();
+        gesture.set_button(gdk::BUTTON_SECONDARY);
+        gesture.connect_pressed(move |g, _, x, y| {
+            let Some(row) = row_weak.upgrade() else {
+                return;
+            };
+            list.select_row(Some(&row));
+            let dest = dir_cell.borrow().clone();
+            let alloc = row.allocation();
+            present_context_menu(
+                &list,
+                gdk::Rectangle::new(alloc.x() + x as i32, alloc.y() + y as i32, 1, 1),
+                Some(path.clone()),
+                dest,
+                Rc::clone(&clip),
+                Rc::clone(&refresh),
+                win.clone(),
+                Some(Rc::clone(&dir_cell)),
+            );
+            g.set_state(gtk::EventSequenceState::Claimed);
+        });
+        row.add_controller(gesture);
+    }
+
+    // Middle-click: files → new editor tab; folders → enter in the browser.
+    {
+        let path = path.clone();
+        let dir_cell = Rc::clone(&dir_cell);
+        let refresh = Rc::clone(&refresh);
+        let win = win.clone();
+        let middle = gtk::GestureClick::new();
+        middle.set_button(gdk::BUTTON_MIDDLE);
+        middle.set_propagation_phase(gtk::PropagationPhase::Capture);
+        middle.connect_pressed(move |g, _, _, _| {
+            if path.is_dir() {
+                *dir_cell.borrow_mut() = path.clone();
+                refresh();
+            } else if path.is_file() {
+                if let Ok(app_win) = win.clone().downcast::<gtk::ApplicationWindow>() {
+                    crate::window::open_path_in_window(&app_win, &path);
+                }
+            }
+            g.set_state(gtk::EventSequenceState::Claimed);
+        });
+        row.add_controller(middle);
+    }
 }
 
 fn present_context_menu(

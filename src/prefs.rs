@@ -174,6 +174,7 @@ pub fn show_preferences(
     gtk_theme::style_dialog(&dialog);
 
     let notebook = gtk::Notebook::new();
+    notebook.remove_css_class("frame");
 
     // --- View page ---
     let view_box = gtk::Box::new(gtk::Orientation::Vertical, 8);

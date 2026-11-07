@@ -20,6 +20,7 @@ impl Panel {
 
     fn with_header(orientation_label: Option<&str>) -> Self {
         let notebook = gtk::Notebook::new();
+        notebook.remove_css_class("frame");
         notebook.set_scrollable(true);
         notebook.set_vexpand(true);
         notebook.set_hexpand(true);

@@ -26,6 +26,7 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 use gtk4 as gtk;
+use gtk::gdk;
 use gtk::gio;
 use gtk::glib;
 use gtk::prelude::*;
@@ -47,6 +48,115 @@ fn prefer_color_emoji_renderer() {
     }
 }
 
+/// App-level overrides at USER priority so Adwaita's notebook accent bar and
+/// 1px frames lose even when a session theme (hyprcore) reloads after chrome CSS.
+fn install_tab_chrome_overrides() {
+    let profile = gtk_theme::load_profile();
+    // Match gtk-theme chrome_css_raw mixes so tabs stay visible vs editor bg.
+    let surface = gtk_theme::mix_hex(profile.background, profile.foreground, 0.10);
+    let surface_alt = gtk_theme::mix_hex(profile.background, profile.foreground, 0.18);
+    let fg = profile.foreground;
+    let bg = profile.background;
+    let css = format!(
+        r#"
+notebook,
+notebook.frame,
+notebook > header,
+notebook > header > tabs,
+notebook > stack,
+paned > separator,
+paned > separator.wide {{
+  border: none;
+  border-width: 0;
+  outline: none;
+  box-shadow: none;
+}}
+notebook > header,
+notebook > header.top,
+notebook > header.bottom {{
+  background: {surface};
+  background-color: {surface};
+  background-image: none;
+  border: none;
+  box-shadow: none;
+  min-height: 2.4em;
+}}
+notebook > header > tabs > tab,
+notebook > header.top > tabs > tab,
+notebook > header.bottom > tabs > tab,
+notebook > header.left > tabs > tab,
+notebook > header.right > tabs > tab {{
+  background: {surface};
+  background-color: {surface};
+  background-image: none;
+  color: alpha({fg}, 0.65);
+  border: none;
+  border-width: 0;
+  border-bottom: none;
+  border-image: none;
+  outline: none;
+  box-shadow: none;
+  border-radius: 0;
+  min-height: 2.4em;
+  padding: 6px 12px;
+}}
+notebook > header > tabs > tab:hover,
+notebook > header.top > tabs > tab:hover {{
+  background: alpha({fg}, 0.10);
+  background-color: alpha({fg}, 0.10);
+  color: {fg};
+  box-shadow: none;
+  border: none;
+}}
+notebook > header > tabs > tab:checked,
+notebook > header > tabs > tab:checked:hover,
+notebook > header > tabs > tab:checked:active,
+notebook > header > tabs > tab:checked:backdrop,
+notebook > header.top > tabs > tab:checked,
+notebook > header.top > tabs > tab:checked:hover,
+notebook > header.top > tabs > tab:checked:active,
+notebook > header.top > tabs > tab:checked:backdrop,
+notebook > header.bottom > tabs > tab:checked,
+notebook > header.left > tabs > tab:checked,
+notebook > header.right > tabs > tab:checked {{
+  background: {surface_alt};
+  background-color: {surface_alt};
+  background-image: none;
+  color: {fg};
+  border: none;
+  border-width: 0;
+  border-bottom: none;
+  border-image: none;
+  outline: none;
+  box-shadow: none;
+}}
+notebook > stack {{
+  background-color: {bg};
+  border: none;
+  box-shadow: none;
+}}
+.gtk-content,
+.side-panel,
+scrolledwindow.gtk-content,
+scrolledwindow.side-panel,
+scrolledwindow.editor-view {{
+  border: none;
+  outline: none;
+  box-shadow: none;
+}}
+"#
+    );
+    if let Some(display) = gdk::Display::default() {
+        let provider = gtk::CssProvider::new();
+        provider.load_from_data(&css);
+        gtk::style_context_add_provider_for_display(
+            &display,
+            &provider,
+            gtk::STYLE_PROVIDER_PRIORITY_USER,
+        );
+    }
+}
+
 fn main() -> glib::ExitCode {
     prefer_color_emoji_renderer();
     let app = gtk::Application::builder()
@@ -60,6 +170,7 @@ fn main() -> glib::ExitCode {
         install_app_actions(app);
         gtk::Window::set_default_icon_name(gtk_theme::app_icons::EDIT);
         gtk_theme::apply_chrome(gtk_theme::load_profile());
+        install_tab_chrome_overrides();
     });
 
     app.connect_activate(|app| {
